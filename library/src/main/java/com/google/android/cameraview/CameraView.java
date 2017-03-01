@@ -99,8 +99,6 @@ public class CameraView extends FrameLayout {
 
     private final DisplayOrientationDetector mDisplayOrientationDetector;
 
-    private FaceDetectionCallback faceDetectionCallback;
-
     private final Handler handler = new Handler();
 
     public CameraView(Context context) {
@@ -118,7 +116,7 @@ public class CameraView extends FrameLayout {
         final PreviewImpl preview = createPreviewImpl(context);
         mCallbacks = new CallbackBridge();
         if (Build.VERSION.SDK_INT < 21) {
-            mImpl = new Camera1(mCallbacks, preview, faceDetectionCallback);
+            mImpl = new Camera1(mCallbacks, preview);
         } else if (Build.VERSION.SDK_INT < 23) {
             mImpl = new Camera2(mCallbacks, preview, context);
         } else {
@@ -240,14 +238,6 @@ public class CameraView extends FrameLayout {
         }
     }
 
-
-    public void setFaceDetectionCallback(FaceDetectionCallback faceDetectionCallback) {
-        this.faceDetectionCallback = faceDetectionCallback;
-        if (mImpl != null) {
-            this.mImpl.setFaceDetectionCallback(faceDetectionCallback);
-        }
-    }
-
     @Override
     protected Parcelable onSaveInstanceState() {
         SavedState state = new SavedState(super.onSaveInstanceState());
@@ -281,7 +271,7 @@ public class CameraView extends FrameLayout {
             //store the state ,and restore this state after fall back o Camera1
             Parcelable state = onSaveInstanceState();
             // Camera2 uses legacy hardware layer; fall back to Camera1
-            mImpl = new Camera1(mCallbacks, createPreviewImpl(getContext()), faceDetectionCallback);
+            mImpl = new Camera1(mCallbacks, createPreviewImpl(getContext()));
             onRestoreInstanceState(state);
             mImpl.start();
         }
@@ -605,14 +595,6 @@ public class CameraView extends FrameLayout {
          */
         public void onPictureTaken(CameraView cameraView, byte[] data) {
         }
-    }
-
-    public interface FaceDetectionCallback {
-        void onFaceDetected();
-
-        void onFaceRemoved();
-
-        void onError(Exception e);
     }
 
 }
