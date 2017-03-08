@@ -6,6 +6,7 @@ package com.google.android.cameraview.face;
 
 import android.util.Log;
 
+import com.google.android.cameraview.CameraView;
 import com.google.android.gms.vision.Tracker;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
@@ -16,8 +17,10 @@ import com.google.android.gms.vision.face.FaceDetector;
  */
 class GraphicFaceTracker extends Tracker<Face> {
     public static final String TAG = GraphicFaceTracker.class.getSimpleName();
+    private final CameraView.FaceDetectionCallback faceDetectionListener;
 
-    GraphicFaceTracker() {
+    GraphicFaceTracker(CameraView.FaceDetectionCallback listener) {
+        this.faceDetectionListener = listener;
     }
 
     /**
@@ -27,6 +30,7 @@ class GraphicFaceTracker extends Tracker<Face> {
     public void onNewItem(int faceId, Face item) {
         // TODO: Add face detection callback
         Log.d(TAG, "onNewItem: ");
+        faceDetectionListener.onFaceDetected();
     }
 
     /**
@@ -54,5 +58,6 @@ class GraphicFaceTracker extends Tracker<Face> {
     @Override
     public void onDone() {
         Log.d(TAG, "onDone: ");
+        faceDetectionListener.onFaceRemoved();
     }
 }
