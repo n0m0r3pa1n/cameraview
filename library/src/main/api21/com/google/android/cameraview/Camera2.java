@@ -83,6 +83,7 @@ class Camera2 extends CameraViewImpl {
         @Override
         public void onError(@NonNull CameraDevice camera, int error) {
             Log.e(TAG, "onError: " + camera.getId() + " (" + error + ")");
+            mCamera.close();
             mCamera = null;
         }
 
@@ -100,9 +101,6 @@ class Camera2 extends CameraViewImpl {
             updateAutoFocus();
             updateFlash();
 
-            // Set face detection
-            mPreviewRequestBuilder.set(CaptureRequest.STATISTICS_FACE_DETECT_MODE,
-                    CameraMetadata.STATISTICS_FACE_DETECT_MODE_FULL);
             try {
                 mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(),
                         mCaptureCallback, null);
