@@ -19,6 +19,7 @@ package com.google.android.cameraview;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.hardware.Camera;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Parcel;
@@ -50,6 +51,7 @@ public class CameraView extends FrameLayout {
      * The camera device faces the same direction as the device's screen.
      */
     public static final int FACING_FRONT = Constants.FACING_FRONT;
+    private Camera.PreviewCallback previewCallback;
 
     /**
      * Direction the camera faces relative to device screen.
@@ -170,6 +172,10 @@ public class CameraView extends FrameLayout {
         return preview;
     }
 
+    public PreviewImpl getPreview() {
+        return mImpl.mPreview;
+    }
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
@@ -260,6 +266,10 @@ public class CameraView extends FrameLayout {
         setAspectRatio(ss.ratio);
         setAutoFocus(ss.autoFocus);
         setFlash(ss.flash);
+
+        if (previewCallback != null) {
+            mImpl.setPreviewCallback(previewCallback);
+        }
     }
 
     /**
@@ -311,6 +321,11 @@ public class CameraView extends FrameLayout {
      */
     public void addCallback(@NonNull Callback callback) {
         mCallbacks.add(callback);
+    }
+
+    public void setPreviewCallback(Camera.PreviewCallback previewCallback) {
+        this.previewCallback = previewCallback;
+        mImpl.setPreviewCallback(previewCallback);
     }
 
     /**

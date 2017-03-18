@@ -56,17 +56,17 @@ class SurfaceViewPreview extends PreviewImpl {
     }
 
     @Override
-    Surface getSurface() {
+    public Surface getSurface() {
         return getSurfaceHolder().getSurface();
     }
 
     @Override
-    SurfaceHolder getSurfaceHolder() {
+    public SurfaceHolder getSurfaceHolder() {
         return mSurfaceView.getHolder();
     }
 
     @Override
-    View getView() {
+    public View getView() {
         return mSurfaceView;
     }
 

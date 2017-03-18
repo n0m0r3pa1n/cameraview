@@ -24,7 +24,7 @@ import android.view.View;
 /**
  * Encapsulates all the operations related to camera preview in a backward-compatible manner.
  */
-abstract class PreviewImpl {
+public abstract class PreviewImpl {
 
     interface Callback {
         void onSurfaceChanged();
@@ -41,9 +41,9 @@ abstract class PreviewImpl {
         mCallback = callback;
     }
 
-    abstract Surface getSurface();
+    public abstract Surface getSurface();
 
-    abstract View getView();
+    public abstract View getView();
 
     abstract Class getOutputClass();
 
@@ -59,7 +59,7 @@ abstract class PreviewImpl {
         mCallback.onSurfaceDestroyed();
     }
 
-    SurfaceHolder getSurfaceHolder() {
+    public SurfaceHolder getSurfaceHolder() {
         return null;
     }
 

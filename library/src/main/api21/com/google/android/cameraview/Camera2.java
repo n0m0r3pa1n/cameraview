@@ -19,6 +19,7 @@ package com.google.android.cameraview;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
+import android.hardware.Camera;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -30,6 +31,8 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.util.Log;
@@ -42,7 +45,6 @@ import java.util.Set;
 import java.util.SortedSet;
 
 import static android.R.attr.orientation;
-import static android.R.attr.y;
 
 @TargetApi(21)
 class Camera2 extends CameraViewImpl {
@@ -121,6 +123,8 @@ class Camera2 extends CameraViewImpl {
 
     };
 
+    private Handler mBackgroundHandler;
+
     PictureCaptureCallback mCaptureCallback = new PictureCaptureCallback() {
 
         @Override
@@ -143,6 +147,31 @@ class Camera2 extends CameraViewImpl {
         }
 
     };
+    private HandlerThread mBackgroundThread;
+
+    private void startBackgroundThread() {
+        mBackgroundThread = new HandlerThread("CameraBackground");
+        mBackgroundThread.start();
+        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+    }
+
+    private void stopBackgroundThread() {
+        try {
+            mBackgroundThread.quitSafely();
+            mBackgroundThread.join();
+            mBackgroundThread = null;
+            mBackgroundHandler = null;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            mBackgroundThread = null;
+            mBackgroundHandler = null;
+        } catch (NullPointerException ex) {
+            ex.printStackTrace();
+            mBackgroundThread = null;
+            mBackgroundHandler = null;
+        }
+    }
+
 
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener
             = new ImageReader.OnImageAvailableListener() {
@@ -162,6 +191,21 @@ class Camera2 extends CameraViewImpl {
 
     };
 
+    private final ImageReader.OnImageAvailableListener mOnImageDetectedListener
+            = new ImageReader.OnImageAvailableListener() {
+
+        @Override
+        public void onImageAvailable(ImageReader reader) {
+            Image image = reader.acquireLatestImage();
+            ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+            byte[] data = new byte[buffer.remaining()];
+            buffer.get(data);
+            previewCallback.onPreviewFrame(data, null);
+            reader.close();
+        }
+
+    };
+
 
     private String mCameraId;
 
@@ -174,6 +218,8 @@ class Camera2 extends CameraViewImpl {
     CaptureRequest.Builder mPreviewRequestBuilder;
 
     private ImageReader mImageReader;
+
+    private ImageReader mImageDetectionReader;
 
     private final SizeMap mPreviewSizes = new SizeMap();
 
@@ -188,6 +234,7 @@ class Camera2 extends CameraViewImpl {
     private int mFlash;
 
     private int mDisplayOrientation;
+    private Camera.PreviewCallback previewCallback;
 
     Camera2(Callback callback, PreviewImpl preview, Context context) {
         super(callback, preview);
@@ -210,12 +257,13 @@ class Camera2 extends CameraViewImpl {
         if (!chooseCameraIdByFacing()) {
             return false;
         }
+        startBackgroundThread();
         collectCameraInfo();
         prepareImageReader();
         Log.d("CameraView Start", "Camera " + chooseOptimalSize().toString() + " Picture " + mPictureSizes.sizes(mAspectRatio).last());
         Log.d("CameraView Start2", "Camera " + mPreviewSizes.sizesString(mAspectRatio) + " Picture " + mPictureSizes.sizesString(mAspectRatio));
 
-        if(mPreviewRequestBuilder == null) {
+        if (mPreviewRequestBuilder == null) {
             startCaptureSession();
         }
         startOpeningCamera();
@@ -237,6 +285,8 @@ class Camera2 extends CameraViewImpl {
             mImageReader.close();
             mImageReader = null;
         }
+
+        stopBackgroundThread();
     }
 
     @Override
@@ -264,6 +314,11 @@ class Camera2 extends CameraViewImpl {
     @Override
     Set<AspectRatio> getSupportedAspectRatios() {
         return mPreviewSizes.ratios();
+    }
+
+    @Override
+    void setPreviewCallback(Camera.PreviewCallback previewCallback) {
+        this.previewCallback = previewCallback;
     }
 
     @Override
@@ -435,6 +490,10 @@ class Camera2 extends CameraViewImpl {
         mImageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(),
                 ImageFormat.JPEG, /* maxImages */ 2);
         mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, null);
+
+        mImageDetectionReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(),
+                ImageFormat.JPEG, /* maxImages */ 2);
+        mImageDetectionReader.setOnImageAvailableListener(mOnImageDetectedListener, mBackgroundHandler);
     }
 
     /**
@@ -464,7 +523,8 @@ class Camera2 extends CameraViewImpl {
         try {
             mPreviewRequestBuilder = mCamera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             mPreviewRequestBuilder.addTarget(surface);
-            mCamera.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface()),
+            mPreviewRequestBuilder.addTarget(mImageDetectionReader.getSurface());
+            mCamera.createCaptureSession(Arrays.asList(surface, mImageDetectionReader.getSurface()),
                     mSessionCallback, null);
         } catch (Exception e) {
             e.printStackTrace();

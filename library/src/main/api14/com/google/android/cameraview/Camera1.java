@@ -20,7 +20,9 @@ import android.annotation.SuppressLint;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.os.Build;
+import android.os.Handler;
 import android.support.v4.util.SparseArrayCompat;
+import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
@@ -71,6 +73,7 @@ class Camera1 extends CameraViewImpl {
 
     private int mDisplayOrientation;
     private boolean isTakingPicture = false;
+    private Camera.PreviewCallback previewCallback;
 
     Camera1(Callback callback, PreviewImpl preview) {
         super(callback, preview);
@@ -98,6 +101,7 @@ class Camera1 extends CameraViewImpl {
             setUpPreview();
         }
         mShowingPreview = true;
+        addPreview();
         mCamera.startPreview();
         return true;
     }
@@ -105,7 +109,11 @@ class Camera1 extends CameraViewImpl {
     @Override
     void stop() {
         if (mCamera != null) {
-            mCamera.stopPreview();
+            try {
+                mCamera.stopPreview();
+            } catch (RuntimeException e) {
+                Log.e(TAG, "stop: ", e);
+            }
         }
         mShowingPreview = false;
         releaseCamera();
@@ -130,6 +138,24 @@ class Camera1 extends CameraViewImpl {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void addPreview() {
+        mCamera.addCallbackBuffer(new byte[5200000]);
+        mCamera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
+            @Override
+            public void onPreviewFrame(byte[] bytes, Camera camera) {
+                if (bytes == null || camera == null) {
+                    return;
+                }
+
+                mCamera = camera;
+                mCamera.addCallbackBuffer(bytes);
+                if (previewCallback != null) {
+                    previewCallback.onPreviewFrame(bytes, camera);
+                }
+            }
+        });
     }
 
     @Override
@@ -157,6 +183,11 @@ class Camera1 extends CameraViewImpl {
     @Override
     Set<AspectRatio> getSupportedAspectRatios() {
         return mPreviewSizes.ratios();
+    }
+
+    @Override
+    void setPreviewCallback(Camera.PreviewCallback previewCallback) {
+        this.previewCallback = previewCallback;
     }
 
     @Override
@@ -272,6 +303,7 @@ class Camera1 extends CameraViewImpl {
             }
             mCamera.setDisplayOrientation(cameraRotation);
             if (needsToStopPreview) {
+                addPreview();
                 mCamera.startPreview();
             }
         }
@@ -302,6 +334,13 @@ class Camera1 extends CameraViewImpl {
         }
         mCamera = Camera.open(mCameraId);
         mCameraParameters = mCamera.getParameters();
+        mCamera.addCallbackBuffer(new byte[5200000]);
+        mCamera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
+            @Override
+            public void onPreviewFrame(byte[] bytes, Camera camera) {
+                Log.d(TAG, "onPreviewFrame: ");
+            }
+        });
         // Supported preview sizes
         setupSupportedPreviewSizes();
         // Supported picture sizes;
@@ -366,6 +405,7 @@ class Camera1 extends CameraViewImpl {
             setFlashInternal(mFlash);
             mCamera.setParameters(mCameraParameters);
             if (mShowingPreview) {
+                addPreview();
                 mCamera.startPreview();
             }
         }

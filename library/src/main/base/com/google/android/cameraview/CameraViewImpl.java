@@ -16,6 +16,7 @@
 
 package com.google.android.cameraview;
 
+import android.hardware.Camera;
 import android.view.View;
 
 import java.util.Set;
@@ -49,6 +50,8 @@ abstract class CameraViewImpl {
     abstract int getFacing();
 
     abstract Set<AspectRatio> getSupportedAspectRatios();
+
+    abstract void setPreviewCallback(Camera.PreviewCallback previewCallback);
 
     /**
      * @return {@code true} if the aspect ratio was changed.
