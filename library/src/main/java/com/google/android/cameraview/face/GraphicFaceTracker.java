@@ -39,6 +39,7 @@ class GraphicFaceTracker extends Tracker<Face> {
     @Override
     public void onUpdate(FaceDetector.Detections<Face> detectionResults, Face face) {
         Log.d(TAG, "onUpdate: ");
+        faceDetectionListener.onFaceDetected();
     }
 
     /**
@@ -49,6 +50,7 @@ class GraphicFaceTracker extends Tracker<Face> {
     @Override
     public void onMissing(FaceDetector.Detections<Face> detectionResults) {
         Log.d(TAG, "onMissing: ");
+        faceDetectionListener.onFaceRemoved();
     }
 
     /**

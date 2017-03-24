@@ -44,6 +44,7 @@ android {
         main.java.srcDirs += 'src/main/api21'
         main.java.srcDirs += 'src/main/api23'
     }
+    buildToolsVersion '25.0.2'
 }
 
 dependencies {
