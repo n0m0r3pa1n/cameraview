@@ -149,6 +149,9 @@ public class CameraView extends FrameLayout {
         setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (!isCameraOpened()) {
+                    return;
+                }
                 if (getAutoFocus()) {
                     setAutoFocus(false);
                     setAutoFocus(true);

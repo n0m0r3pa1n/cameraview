@@ -206,7 +206,9 @@ class Camera2 extends CameraViewImpl {
 
             @Override
             public void onSurfaceDestroyed() {
-                stop();
+                if (isCameraOpened()) {
+                    stop();
+                }
             }
         });
     }
